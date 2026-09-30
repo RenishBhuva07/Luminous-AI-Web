@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { sendMessage } from '../controllers/chatController'
 import Sidebar from '../components/Sidebar'
 import robotImg from '../assets/robot.png'
 import './ChatPage.css'
+import ReactMarkdown from 'react-markdown'
 
 interface Message {
   id: number
@@ -52,27 +54,31 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  const simulateResponse = (userMsg: string) => {
+  const fetchAiResponse = async (userMsg: string) => {
     setIsTyping(true)
-    setStatusText(`Searching for: ${userMsg.slice(0, 30)}...`)
+    setStatusText('Generating answers for you...')
 
-    setTimeout(() => {
-      setStatusText('Generating answers for you...')
-    }, 900)
-
-    setTimeout(() => {
-      const responseText = MOCK_RESPONSES[responseIndex.current % MOCK_RESPONSES.length]
-      const sourcesArr = SOURCES[responseIndex.current % SOURCES.length]
-      responseIndex.current++
-
+    try {
+      const data = await sendMessage(userMsg)
+      
       setIsTyping(false)
       setStatusText('')
 
-      // Stream the text word by word
-      const words = responseText.split(' ')
-      let accumulated = ''
       const newId = Date.now()
+      
+      let responseText = ''
+      if (data.data?.message?.content) {
+        responseText = data.data.message.content
+      } else {
+        responseText = data.message || data.text || data.response || (typeof data === 'string' ? data : JSON.stringify(data))
+      }
+      
+      const sourcesArr = data.sources || data.data?.sources || []
 
+      // Stream the text word by word
+      const words = String(responseText).split(' ')
+      let accumulated = ''
+      
       setMessages(prev => [...prev, { id: newId, role: 'ai', text: '', sources: sourcesArr }])
 
       let wordIndex = 0
@@ -87,7 +93,13 @@ export default function ChatPage() {
           clearInterval(interval)
         }
       }, 40)
-    }, 1800)
+
+    } catch (error) {
+      setIsTyping(false)
+      setStatusText('')
+      setMessages(prev => [...prev, { id: Date.now(), role: 'ai', text: 'Sorry, I encountered an error. Please try again later.' }])
+      console.error('API Error:', error)
+    }
   }
 
   const handleSend = () => {
@@ -99,7 +111,7 @@ export default function ChatPage() {
       { id: Date.now(), role: 'user', text: trimmed },
     ])
     setInput('')
-    simulateResponse(trimmed)
+    fetchAiResponse(trimmed)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -155,7 +167,9 @@ export default function ChatPage() {
                 </div>
               )}
               <div className={`msg-bubble msg-bubble-${msg.role}`}>
-                <p className="msg-text" style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</p>
+                <div className="msg-text">
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                </div>
                 {msg.sources && msg.sources.length > 0 && (
                   <div className="msg-sources">
                     <p className="sources-label">Learn more:</p>

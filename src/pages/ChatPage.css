@@ -175,6 +175,32 @@
   line-height: 1.55;
 }
 
+.msg-text p {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+.msg-text p:last-child {
+  margin-bottom: 0;
+}
+
+.msg-text ol, .msg-text ul {
+  padding-left: 20px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+.msg-text li {
+  margin-bottom: 6px;
+}
+.msg-text li:last-child {
+  margin-bottom: 0;
+}
+
+.msg-text h1, .msg-text h2, .msg-text h3, .msg-text h4, .msg-text h5, .msg-text h6 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
 /* Sources */
 .msg-sources { margin-top: 12px; }
 
